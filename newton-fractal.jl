@@ -92,26 +92,31 @@ function newton(f, f′, z0::Number, n::Int)
     end
 end
 
-function main(out)
+function main(out, argv, argc)
     n = 3
     roots = [exp(im*2*π*k/n) for k in 1:n]
     P = reduce(*, X - z for z ∈ roots)
     #P = X^8 + 15*X^4 - 16 + 0.0im
     P′ = deriv(P)
 
-    xres, yres = 800, 800
+    xres::Int64 = yres::Int64 = 200
+    if argc == 1
+        xres = yres = parse(typeof(xres), argv[1])
+    elseif argc == 2
+        xres, yres = (parse(typeof(xres), arg) for arg ∈ argv)
+    end
     xrange, yrange = range(-1, 1, xres), range(-1, 1, yres)
-    color::Matrix{Int8} = zeros(Int8, xres, yres)
-    Threads.@threads for i ∈ 1:xres
-        for j ∈ 1:yres
+    color::Matrix{Int8} = zeros(Int8, yres, xres)
+    Threads.@threads for i ∈ 1:yres
+        for j ∈ 1:xres
             z0 = xrange[j] + yrange[i]*im
             z = newton(P, P′, z0, 50)
             color[i,j] = findmin((abs(z - z0) for z0 ∈ roots))[2]
         end
     end
 
-    for i ∈ length(yrange):-1:1
-        for j ∈ 1:length(xrange)
+    for i ∈ yres:-1:1
+        for j ∈ 1:xres
             print(out, color[i,j], " ")
         end
         print(out, "\n")
@@ -121,6 +126,6 @@ end
 if abspath(PROGRAM_FILE) == @__FILE__
     # Julia is stupid about buffering?
     out = IOBuffer()
-    main(out)
+    main(stdout, ARGS, length(ARGS))
     print(String(take!(out)))
 end
