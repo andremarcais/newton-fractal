@@ -54,7 +54,7 @@ function Base.:^(P::Poly, n::Integer)
     end
 end
 
-(P::Poly{T})(x::T) where T = sum( P.terms[k]*x^(k-1) for k ∈ 1:length(P.terms) )
+(P::Poly)(x) = sum( P.terms[k]*x^(k-1) for k ∈ 1:length(P.terms) )
 
 deriv(P::Poly) = Poly([ k*P.terms[k+1] for k ∈ 1:deg(P) ])
 
@@ -92,6 +92,22 @@ function newton(f, f′, z0::Number, n::Int)
     end
 end
 
+function parseargs(argv, argc)
+    xres::Int64 = yres::Int64 = 200
+    iter::Int64 = 20
+    if argc >= 1
+        xres = yres = parse(typeof(xres), argv[1])
+        if argc == 2
+            iter = parse(typeof(iter), argv[2])
+            if argc > 2
+                print(stderr, "Usage error\n")
+                exit(1)
+            end
+        end
+    end
+    (xres, yres, iter)
+end
+
 function main(out, argv, argc)
     n = 3
     roots = [exp(im*2*π*k/n) for k in 1:n]
@@ -99,18 +115,13 @@ function main(out, argv, argc)
     #P = X^8 + 15*X^4 - 16 + 0.0im
     P′ = deriv(P)
 
-    xres::Int64 = yres::Int64 = 200
-    if argc == 1
-        xres = yres = parse(typeof(xres), argv[1])
-    elseif argc == 2
-        xres, yres = (parse(typeof(xres), arg) for arg ∈ argv)
-    end
+    xres::Int64, yres::Int64, iter::Int64 = parseargs(argv, argc)
     xrange, yrange = range(-1, 1, xres), range(-1, 1, yres)
     color::Matrix{Int8} = zeros(Int8, yres, xres)
     Threads.@threads for i ∈ 1:yres
         for j ∈ 1:xres
             z0 = xrange[j] + yrange[i]*im
-            z = newton(P, P′, z0, 50)
+            z = newton(P, P′, z0, iter)
             color[i,j] = findmin((abs(z - z0) for z0 ∈ roots))[2]
         end
     end
