@@ -1,18 +1,47 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 
-// Shader source code
-const char* fragmentShaderSource =
-    "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "void main()\n"
-    "{\n"
-    "    FragColor = vec4(gl_FragCoord[0]/800, 1.0, 0.0, 1.0);\n"
-    "}\n";
+int
+slurp(FILE *file, char **buf)
+{
+    char *tmp;
+    size_t size = 64, read = 0, n;
+    *buf = malloc(size);
+    while ((n = fread(*buf + read, 1, size - read, file)) > 0) {
+        read += n;
+        if (read == size) {
+            size *= 2;
+            if ((tmp = realloc(*buf, size)) == NULL) {
+                fprintf(stderr, "Failed to reallocate!\n");
+                free(*buf);
+                *buf = NULL;
+                return 0;
+            }
+            *buf = tmp;
+        }
+    }
+    return read;
+}
 
-int main()
+int
+shaderSourcePath(GLuint shader, char *path)
+{
+    GLint length;
+    char *source;
+    FILE *file;
+
+    file = fopen(path, "r");
+    length = slurp(file, &source);
+    glShaderSource(shader, 1, (char const* const*) &source, &length);
+    free(source);
+    return length;
+}
+
+int
+main(int argc, char **argv)
 {
     SDL_Init(SDL_INIT_VIDEO);
 
@@ -36,7 +65,7 @@ int main()
 
     // Compile the fragment shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    shaderSourcePath(fragmentShader, "./fragment.glsl");
     glCompileShader(fragmentShader);
 
     // Check for shader compilation errors
