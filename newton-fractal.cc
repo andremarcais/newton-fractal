@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 int
 slurp(FILE *file, char **buf)
@@ -108,7 +111,7 @@ main(int argc, char **argv)
 
     const char *attrNames[] = { "vertPos", "vertRoot" };
     const GLint nverts = 6;
-    const GLuint bufsz[2] = { 3, 4 };
+    const GLuint bufsz[2] = { 3 };
     const GLfloat bufdat[] = {
         // vertex buffer
         1.0f, -1.0f, 0.0f,
@@ -117,18 +120,11 @@ main(int argc, char **argv)
         1.0f, -1.0f, 0.0f,
         1.0f, 1.0f, 0.0f,
         -1.0f, 1.0f, 0.0f,
-        // complex roots
-        0.0f, 1.0f, -1.0f, 0.0f,
-        0.0f, 1.0f, -1.0f, 0.0f,
-        0.0f, 1.0f, -1.0f, 0.0f,
-        0.0f, 1.0f, -1.0f, 0.0f,
-        0.0f, 1.0f, -1.0f, 0.0f,
-        0.0f, 1.0f, -1.0f, 0.0f,
     };
     GLuint bufobjs[2];
     GLint attrs[2];
     glGenBuffers(2, bufobjs);
-    for (int i = 0, o = 0; i < 2; o += nverts*bufsz[i], ++i) {
+    for (int i = 0, o = 0; i < 1; o += nverts*bufsz[i], ++i) {
         if ((attrs[i] = glGetAttribLocation(shaderProgram, attrNames[i])) == -1) {
             fprintf(stderr, "warn: Failed to get location of resource %s\n", attrNames[i]);
             continue;
@@ -140,6 +136,12 @@ main(int argc, char **argv)
         glVertexAttribPointer(attrs[i], bufsz[i], GL_FLOAT, GL_FALSE, 0, 0);
     }
 
+    GLint viewTransAttr = glGetUniformLocation(shaderProgram, "viewTrans");
+    glm::mat4x4 viewTrans(1.0f);
+    if (viewTransAttr == -1) {
+        fprintf(stderr, "warn: Failed to get location of resource viewTrans\n");
+    }
+
     glUseProgram(shaderProgram);
 
     glViewport(0, 0, 800, 800);
@@ -148,14 +150,29 @@ main(int argc, char **argv)
     int quit = 0;
     while (!quit) {
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
+            switch (event.type) {
+            case SDL_MOUSEMOTION:
+                if (event.motion.state & SDL_BUTTON_MMASK) {
+                    // TODO unhardcode window width
+                    viewTrans = glm::translate(
+                        viewTrans,
+                        (1.0f/800)*glm::vec3(-event.motion.xrel, event.motion.yrel, 0.0)
+                    );
+                }
+                break;
+            case SDL_MOUSEWHEEL:
+                viewTrans = powf(2.0f, -event.wheel.y) * viewTrans;
+                break;
+            case SDL_QUIT:
                 quit = 1;
+                break;
             }
         }
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        glUniformMatrix4fv(viewTransAttr, 1, GL_FALSE, glm::value_ptr(viewTrans));
         glDrawArrays(GL_TRIANGLES, 0, nverts);
 
         // Swap buffers
