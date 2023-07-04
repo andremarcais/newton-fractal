@@ -1,5 +1,6 @@
 #version 420 core
 
+const mat2 I = mat2(1.0, 0.0, 0.0, 1.0);
 in mat2 root;
 in mat2 z0;
 out vec4 FragColor;
@@ -17,11 +18,11 @@ mat2 inv(mat2 z) {
 }
 
 mat2 func(mat2 z) {
-    return z*z*z + z*z + z + 1;
+    return z*z*z + z*z + z + I;
 }
 
 mat2 deriv(mat2 z) {
-    return 3*z*z + 2*z + 1;
+    return 3*z*z + 2*z + I;
 }
 
 mat2 newton(mat2 z0) {
@@ -34,8 +35,7 @@ mat2 newton(mat2 z0) {
 
 void main()
 {
-    //gl_FragDepth = 0.0;
-    gl_FragDepth = root[0][0];
-    //FragColor = vec4(newton(z0)[0], 0.0, 1.0);
-    FragColor = vec4((z0*z0)[0], 0.0, 1.0);
+    //FragColor = vec4(func(z0)[0], 0.0, 1.0);
+    FragColor = vec4(newton(z0)[0], 0.0, 1.0);
+    //FragColor = vec4(inv(z0)[0], 0.0, 1.0);
 }

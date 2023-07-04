@@ -110,7 +110,8 @@ end
 
 function main(out, argv, argc)
     n = 3
-    roots = [exp(im*2*π*k/n) for k in 1:n]
+    #roots = [exp(im*2*π*k/n) for k in 1:n]
+    roots::Array{ComplexF64} = [1,im,-im]
     P = reduce(*, X - z for z ∈ roots)
     #P = X^8 + 15*X^4 - 16 + 0.0im
     P′ = deriv(P)
@@ -122,7 +123,9 @@ function main(out, argv, argc)
         for j ∈ 1:xres
             z0 = xrange[j] + yrange[i]*im
             z = newton(P, P′, z0, iter)
-            color[i,j] = findmin((abs(z - z0) for z0 ∈ roots))[2]
+            #color[i,j] = findmin((abs(z - z0) for z0 ∈ roots))[2]
+            #color[i,j] = floor(min(abs(z - z0), 1.0) * 64.0)
+            color[i,j] = floor(min(abs(z), 1.0) * 64.0)
         end
     end
 

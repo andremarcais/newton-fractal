@@ -91,7 +91,7 @@ main(int argc, char **argv)
         "SDL OpenGL Window",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        800, 600,
+        800, 800,
         SDL_WINDOW_OPENGL
     );
 
@@ -128,19 +128,19 @@ main(int argc, char **argv)
     glGenBuffers(2, bufobjs);
     for (int i = 0, o = 0; i < 2; o += nverts*bufsz[i], ++i) {
         if ((attrs[i] = glGetAttribLocation(shaderProgram, attrNames[i])) == -1) {
-            fprintf(stderr, "Failed to get location of resource %s\n", attrNames[i]);
-            return 1;
+            fprintf(stderr, "warn: Failed to get location of resource %s\n", attrNames[i]);
+            continue;
         }
         glBindBuffer(GL_ARRAY_BUFFER, bufobjs[i]);
         glBufferData(GL_ARRAY_BUFFER, sizeof(bufdat[0])*bufsz[i]*nverts, bufdat+o, GL_STATIC_DRAW);
-        // Probably should be in draw, it it's stateful so who cares!
+        // Probably should be in draw, but it's stateful so who cares!
         glEnableVertexAttribArray(attrs[i]);
         glVertexAttribPointer(attrs[i], bufsz[i], GL_FLOAT, GL_FALSE, 0, 0);
     }
 
     glUseProgram(shaderProgram);
 
-    glViewport(0, 0, 800, 600);
+    glViewport(0, 0, 800, 800);
 
     SDL_Event event;
     int quit = 0;
@@ -154,7 +154,6 @@ main(int argc, char **argv)
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // Draw the triangle
         glDrawArrays(GL_TRIANGLES, 0, nverts);
 
         // Swap buffers
