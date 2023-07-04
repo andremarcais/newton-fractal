@@ -15,7 +15,6 @@ slurp(FILE *file, char **buf)
         if (read == size) {
             size *= 2;
             if ((tmp = realloc(*buf, size)) == NULL) {
-                fprintf(stderr, "Failed to reallocate!\n");
                 free(*buf);
                 *buf = NULL;
                 return 0;
@@ -40,6 +39,49 @@ shaderSourcePath(GLuint shader, char *path)
     return length;
 }
 
+void
+compileLinkShaders(GLuint shaderProgram)
+{
+    static struct shader {
+        GLenum type;
+        char* path;
+        GLuint id;
+    } shaders[] = {
+        { GL_VERTEX_SHADER, "./vertex.glsl" },
+        { GL_FRAGMENT_SHADER, "./fragment.glsl" },
+        { 0, NULL },
+    };
+
+    for (struct shader *shader = shaders; shader->path; ++shader) {
+        shader->id = glCreateShader(shader->type);
+        shaderSourcePath(shader->id, shader->path);
+        glCompileShader(shader->id);
+
+        // Check for shader compilation errors
+        GLint compileStatus;
+        glGetShaderiv(shader->id, GL_COMPILE_STATUS, &compileStatus);
+        if (compileStatus != GL_TRUE) {
+            GLchar infoLog[512];
+            glGetShaderInfoLog(shader->id, 512, NULL, infoLog);
+            fprintf(stderr, "Failed to compile %s: %s\n", shader->path, infoLog);
+            exit(1);
+        }
+
+        glAttachShader(shaderProgram, shader->id);
+        glDeleteShader(shader->id); // Contrary to the name, it just --refcount
+    }
+
+    GLint linkStatus;
+    glLinkProgram(shaderProgram);
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &linkStatus);
+    if (linkStatus != GL_TRUE) {
+        GLchar infoLog[512];
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        fprintf(stderr, "Failed to link shader program: %s\n", infoLog);
+        exit(1);
+    }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -55,82 +97,70 @@ main(int argc, char **argv)
 
     SDL_GLContext context = SDL_GL_CreateContext(window);
 
-    // Initialize GLEW
     GLenum glewInitResult = glewInit();
-    if (glewInitResult != GLEW_OK)
-    {
-        printf("Failed to initialize GLEW: %s\n", glewGetErrorString(glewInitResult));
+    if (glewInitResult != GLEW_OK) {
+        fprintf(stderr, "Failed to initialize GLEW: %s\n", glewGetErrorString(glewInitResult));
         return 1;
     }
 
-    // Compile the fragment shader
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    shaderSourcePath(fragmentShader, "./fragment.glsl");
-    glCompileShader(fragmentShader);
-
-    // Check for shader compilation errors
-    GLint compileStatus;
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &compileStatus);
-    if (compileStatus != GL_TRUE)
-    {
-        GLchar infoLog[512];
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        printf("Failed to compile fragment shader: %s\n", infoLog);
-        return 1;
-    }
-
-    // Create shader program and attach the fragment shader
     GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
+    compileLinkShaders(shaderProgram);
 
-    // Check for shader program linking errors
-    GLint linkStatus;
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &linkStatus);
-    if (linkStatus != GL_TRUE)
-    {
-        GLchar infoLog[512];
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        printf("Failed to link shader program: %s\n", infoLog);
-        return 1;
+    char *attrNames[] = { "vertPos", "vertRoot" };
+    const GLint nverts = 6;
+    GLfloat bufdat[] = {
+        // vertex buffer
+        1.0f, -1.0f, 0.0f,
+        -1.0f, 1.0f, 0.0f,
+        -1.0f, -1.0f, 0.0f,
+        1.0f, -1.0f, 0.0f,
+        1.0f, 1.0f, 0.0f,
+        -1.0f, 1.0f, 0.0f,
+        // complex roots
+        0.0f, 1.0f, -1.0f, 0.0f,
+        0.0f, 1.0f, -1.0f, 0.0f,
+        0.0f, 1.0f, -1.0f, 0.0f,
+        0.0f, 1.0f, -1.0f, 0.0f,
+        0.0f, 1.0f, -1.0f, 0.0f,
+        0.0f, 1.0f, -1.0f, 0.0f,
+    };
+    GLuint bufobjs[2], attrs[2], bufsz[2] = { 3, 4 };
+    glGenBuffers(2, bufobjs);
+    for (int i = 0, o = 0; i < 2; o += nverts*bufsz[i], ++i) {
+        if ((attrs[i] = glGetAttribLocation(shaderProgram, attrNames[i])) == -1) {
+            fprintf(stderr, "Failed to get location of resource %s\n", attrNames[i]);
+            return 1;
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, bufobjs[i]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(bufdat[0])*bufsz[i]*nverts, bufdat+o, GL_STATIC_DRAW);
+        // Probably should be in draw, it it's stateful so who cares!
+        glEnableVertexAttribArray(attrs[i]);
+        glVertexAttribPointer(attrs[i], bufsz[i], GL_FLOAT, GL_FALSE, 0, 0);
     }
 
-    // Use the shader program
     glUseProgram(shaderProgram);
 
-    // Set up the OpenGL viewport
     glViewport(0, 0, 800, 600);
 
-    // Main loop
     SDL_Event event;
     int quit = 0;
-    while (!quit)
-    {
-        while (SDL_PollEvent(&event))
-        {
-            if (event.type == SDL_QUIT)
-            {
+    while (!quit) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
                 quit = 1;
             }
         }
 
-        // Clear the screen
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Draw the triangle
-        glBegin(GL_TRIANGLES);
-        glVertex3f(-1.0f, -1.0f, 0.0f);
-        glVertex3f(1.0f, -1.0f, 0.0f);
-        glVertex3f(0.0f, 1.0f, 0.0f);
-        glEnd();
+        glDrawArrays(GL_TRIANGLES, 0, nverts);
 
         // Swap buffers
         SDL_GL_SwapWindow(window);
     }
 
-    // Cleanup
-    glDeleteShader(fragmentShader);
     glDeleteProgram(shaderProgram);
     SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
