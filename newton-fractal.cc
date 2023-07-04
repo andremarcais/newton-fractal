@@ -9,12 +9,12 @@ slurp(FILE *file, char **buf)
 {
     char *tmp;
     size_t size = 64, read = 0, n;
-    *buf = malloc(size);
+    *buf = (char*) malloc(size);
     while ((n = fread(*buf + read, 1, size - read, file)) > 0) {
         read += n;
         if (read == size) {
             size *= 2;
-            if ((tmp = realloc(*buf, size)) == NULL) {
+            if ((tmp = (char*) realloc(*buf, size)) == NULL) {
                 free(*buf);
                 *buf = NULL;
                 return 0;
@@ -26,7 +26,7 @@ slurp(FILE *file, char **buf)
 }
 
 int
-shaderSourcePath(GLuint shader, char *path)
+shaderSourcePath(GLuint shader, const char *path)
 {
     GLint length;
     char *source;
@@ -42,9 +42,9 @@ shaderSourcePath(GLuint shader, char *path)
 void
 compileLinkShaders(GLuint shaderProgram)
 {
-    static struct shader {
-        GLenum type;
-        char* path;
+    struct shader {
+        const GLenum type;
+        const char* path;
         GLuint id;
     } shaders[] = {
         { GL_VERTEX_SHADER, "./vertex.glsl" },
@@ -106,9 +106,10 @@ main(int argc, char **argv)
     GLuint shaderProgram = glCreateProgram();
     compileLinkShaders(shaderProgram);
 
-    char *attrNames[] = { "vertPos", "vertRoot" };
+    const char *attrNames[] = { "vertPos", "vertRoot" };
     const GLint nverts = 6;
-    GLfloat bufdat[] = {
+    const GLuint bufsz[2] = { 3, 4 };
+    const GLfloat bufdat[] = {
         // vertex buffer
         1.0f, -1.0f, 0.0f,
         -1.0f, 1.0f, 0.0f,
@@ -124,7 +125,8 @@ main(int argc, char **argv)
         0.0f, 1.0f, -1.0f, 0.0f,
         0.0f, 1.0f, -1.0f, 0.0f,
     };
-    GLuint bufobjs[2], attrs[2], bufsz[2] = { 3, 4 };
+    GLuint bufobjs[2];
+    GLint attrs[2];
     glGenBuffers(2, bufobjs);
     for (int i = 0, o = 0; i < 2; o += nverts*bufsz[i], ++i) {
         if ((attrs[i] = glGetAttribLocation(shaderProgram, attrNames[i])) == -1) {

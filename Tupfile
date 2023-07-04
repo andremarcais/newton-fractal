@@ -1,3 +1,3 @@
 .gitignore
 
-: newton-fractal.c |> gcc -Wall -Werror `pkg-config --cflags --libs sdl2 glew` %f |> a.out
+: newton-fractal.cc |> g++ -Wall -Werror `pkg-config --cflags --libs sdl2 glew` %f |> a.out

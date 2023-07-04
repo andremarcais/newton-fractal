@@ -9,5 +9,5 @@ void main()
 {
     gl_Position = vec4(vertPos, 1.0);
     root = vertRoot;
-    z0 = mat2(vertPos.xy, -vertPos.y, vertPos.x);
+    z0 = 0.1*mat2(vertPos.xy, -vertPos.y, vertPos.x);
 }

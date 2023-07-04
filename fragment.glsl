@@ -18,16 +18,16 @@ mat2 inv(mat2 z) {
 }
 
 mat2 func(mat2 z) {
-    return z*z*z + z*z + z + I;
+    return z*z*z - I;
 }
 
 mat2 deriv(mat2 z) {
-    return 3*z*z + 2*z + I;
+    return 3*z*z;
 }
 
 mat2 newton(mat2 z0) {
     mat2 z = z0;
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 50; ++i) {
         z = z - func(z)*inv(deriv(z));
     }
     return z;
@@ -35,7 +35,5 @@ mat2 newton(mat2 z0) {
 
 void main()
 {
-    //FragColor = vec4(func(z0)[0], 0.0, 1.0);
     FragColor = vec4(newton(z0)[0], 0.0, 1.0);
-    //FragColor = vec4(inv(z0)[0], 0.0, 1.0);
 }

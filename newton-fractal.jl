@@ -110,8 +110,8 @@ end
 
 function main(out, argv, argc)
     n = 3
-    #roots = [exp(im*2*π*k/n) for k in 1:n]
-    roots::Array{ComplexF64} = [1,im,-im]
+    roots = [exp(im*2*π*k/n) for k in 1:n]
+    #roots::Array{ComplexF64} = [1,im,-im]
     P = reduce(*, X - z for z ∈ roots)
     #P = X^8 + 15*X^4 - 16 + 0.0im
     P′ = deriv(P)
