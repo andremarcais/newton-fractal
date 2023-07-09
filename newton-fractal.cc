@@ -172,7 +172,7 @@ main(int argc, char **argv)
                 }
                 break;
             case SDL_MOUSEWHEEL:
-                tmp = powf(2.0f, -event.wheel.y);
+                tmp = powf(2.0f, -0.5*event.wheel.y);
                 tmpVec = fromWinCoord(event.wheel.mouseX, event.wheel.mouseY);
                 viewTrans = glm::translate(
                     glm::scale(
