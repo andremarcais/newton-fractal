@@ -8,6 +8,5 @@ void main()
 {
     gl_Position = vec4(vertPos, 1.0);
     vec4 pos = viewTrans * vec4(vertPos, 1.0);
-    //vec4 pos = mat4(1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1) * vec4(vertPos, 1.0);
     z0 = mat2(pos.xy, -pos.y, pos.x);
 }

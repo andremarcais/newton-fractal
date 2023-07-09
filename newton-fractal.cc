@@ -85,6 +85,15 @@ compileLinkShaders(GLuint shaderProgram)
     }
 }
 
+
+inline glm::vec3
+fromWinCoord(int x, int y)
+{
+    // TODO unhardcode window dimensions
+    glm::vec3 tmp(x - 400.0f, -y + 400.0f, 0.0f);
+    return (2.0f/800)*tmp;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -112,7 +121,7 @@ main(int argc, char **argv)
     const char *attrNames[] = { "vertPos", "vertRoot" };
     const GLint nverts = 6;
     const GLuint bufsz[2] = { 3 };
-    const GLfloat bufdat[] = {
+    const GLfloat bufdat[3*nverts] = {
         // vertex buffer
         1.0f, -1.0f, 0.0f,
         -1.0f, 1.0f, 0.0f,
@@ -150,18 +159,28 @@ main(int argc, char **argv)
     int quit = 0;
     while (!quit) {
         while (SDL_PollEvent(&event)) {
+            GLfloat tmp;
+            glm::vec3 tmpVec;
             switch (event.type) {
             case SDL_MOUSEMOTION:
-                if (event.motion.state & SDL_BUTTON_MMASK) {
-                    // TODO unhardcode window width
+                if (event.motion.state & SDL_BUTTON_LMASK) {
                     viewTrans = glm::translate(
                         viewTrans,
-                        (1.0f/800)*glm::vec3(-event.motion.xrel, event.motion.yrel, 0.0)
+                        // TODO unhardcode window dimensions
+                        (2.0f/800)*glm::vec3(-event.motion.xrel, event.motion.yrel, 0.0)
                     );
                 }
                 break;
             case SDL_MOUSEWHEEL:
-                viewTrans = powf(2.0f, -event.wheel.y) * viewTrans;
+                tmp = powf(2.0f, -event.wheel.y);
+                tmpVec = fromWinCoord(event.wheel.mouseX, event.wheel.mouseY);
+                viewTrans = glm::translate(
+                    glm::scale(
+                        glm::translate(viewTrans, tmpVec),
+                        glm::vec3(tmp)
+                    ),
+                    -tmpVec
+                );
                 break;
             case SDL_QUIT:
                 quit = 1;
