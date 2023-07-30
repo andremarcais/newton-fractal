@@ -186,6 +186,14 @@ main(int argc, char **argv)
                     -tmpVec
                 );
                 break;
+            case SDL_KEYDOWN:
+                switch (event.key.keysym.sym) {
+                case SDLK_q:
+                case SDLK_ESCAPE:
+                    quit = 1;
+                    break;
+                }
+                break;
             case SDL_QUIT:
                 quit = 1;
                 break;
