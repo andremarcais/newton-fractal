@@ -35,7 +35,7 @@ mat2 deriv(mat2 z) {
 }
 
 mat2 newton(mat2 z) {
-    for (int i = 0; i < 100; ++i) {
+    for (int i = 0; i < 50; ++i) {
         z = z - func(z)*inv(deriv(z));
     }
     return z;
@@ -49,10 +49,22 @@ mat2 mandelbrot(mat2 c) {
     return z;
 }
 
+vec4 mandelbrot_color(mat2 c) {
+    mat2 z = 0*U;
+    for (int i = 0; i < 400; ++i) {
+        z = z*z + c;
+        if (abs2(z) > 4) {
+            return vec4(hsv2rgb(vec3(i/20.0, 1.0, 1.0)), 1.0);
+        }
+    }
+    return vec4(0.0, 0.0, 0.0, 1.0);
+}
+
 void main()
 {
-    mat2 z = newton(z0);
-    // FragColor = vec4(z[0], 0.0, 1.0);
-    FragColor = vec4(hsv2rgb(vec3(atan(z[0].y, z[0].x)/tau, 0.7, 0.8)), 1.0);
-    // FragColor = vec4(5/abs2(mandelbrot(z0)), 0.0, 0.0, 1.0);
+    // mat2 z = func(z0);
+    // mat2 z = newton(z0);
+    // FragColor = vec4(hsv2rgb(vec3(atan(z[0].y, z[0].x)/tau, 0.7, 0.8)), 1.0);
+    // FragColor = vec4(2/abs2(mandelbrot(z0)), 0.0, 0.0, 1.0);
+    FragColor = mandelbrot_color(z0);
 }

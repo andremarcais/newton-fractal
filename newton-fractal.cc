@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
@@ -147,6 +148,7 @@ main(int argc, char **argv)
 
     GLint viewTransAttr = glGetUniformLocation(shaderProgram, "viewTrans");
     glm::mat4x4 viewTrans(1.0f);
+    //float zoom = 1.0;
     if (viewTransAttr == -1) {
         fprintf(stderr, "warn: Failed to get location of resource viewTrans\n");
     }
@@ -156,6 +158,7 @@ main(int argc, char **argv)
     glViewport(0, 0, 800, 800);
 
     SDL_Event event;
+    const struct timespec sleeptime = { 0, 16'666'666 };
     int quit = 0;
     while (!quit) {
         while (SDL_PollEvent(&event)) {
@@ -193,6 +196,8 @@ main(int argc, char **argv)
 
         glUniformMatrix4fv(viewTransAttr, 1, GL_FALSE, glm::value_ptr(viewTrans));
         glDrawArrays(GL_TRIANGLES, 0, nverts);
+
+        nanosleep(&sleeptime, NULL);
 
         // Swap buffers
         SDL_GL_SwapWindow(window);
