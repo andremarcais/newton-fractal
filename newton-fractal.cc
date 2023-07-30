@@ -161,6 +161,7 @@ main(int argc, char **argv)
     const struct timespec sleeptime = { 0, 16'666'666 };
     int quit = 0;
     while (!quit) {
+        SDL_WaitEvent(NULL);
         while (SDL_PollEvent(&event)) {
             GLfloat tmp;
             glm::vec3 tmpVec;
