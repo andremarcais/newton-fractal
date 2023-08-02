@@ -10,6 +10,9 @@
 #include <glm/gtx/io.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+int width = 800, height = 800;
+SDL_Window *window;
+
 int
 slurp(FILE *file, char **buf)
 {
@@ -88,13 +91,14 @@ compileLinkShaders(GLuint shaderProgram)
     }
 }
 
-
 inline glm::dvec3
 fromWinCoord(int x, int y)
 {
-    // TODO unhardcode window dimensions
-    glm::dvec3 tmp(x - 400.0d, -y + 400.0d, 0.0d);
-    return (2.0d/800)*tmp;
+    glm::dvec3 tmp(
+        x/static_cast<double>(width) - 0.5d,
+        -y/static_cast<double>(height) + 0.5d, 0.0d
+    );
+    return 2.0d*tmp;
 }
 
 int
@@ -102,11 +106,11 @@ main(int argc, char **argv)
 {
     SDL_Init(SDL_INIT_VIDEO);
 
-    SDL_Window* window = SDL_CreateWindow(
+    window = SDL_CreateWindow(
         "SDL OpenGL Window",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        800, 800,
+        width, height,
         SDL_WINDOW_OPENGL
     );
 
@@ -114,7 +118,8 @@ main(int argc, char **argv)
 
     GLenum glewInitResult = glewInit();
     if (glewInitResult != GLEW_OK) {
-        fprintf(stderr, "Failed to initialize GLEW: %s\n", glewGetErrorString(glewInitResult));
+        fprintf(stderr, "Failed to initialize GLEW: %s\n",
+                glewGetErrorString(glewInitResult));
         return 1;
     }
 
@@ -156,7 +161,7 @@ main(int argc, char **argv)
 
     glUseProgram(shaderProgram);
 
-    glViewport(0, 0, 800, 800);
+    glViewport(0, 0, width, height);
 
     SDL_Event event;
     //const struct timespec sleeptime = { 0, 16'666'666 };
@@ -171,9 +176,12 @@ main(int argc, char **argv)
                 if (event.motion.state & SDL_BUTTON_LMASK) {
                     viewTrans = glm::translate(
                         viewTrans,
-                        // TODO unhardcode window dimensions
                         // 2.0 because gl coordinates from -1 to 1
-                        (2.0d/800)*glm::dvec3(-event.motion.xrel, event.motion.yrel, 0.0)
+                        2.0d*glm::dvec3(
+                            -event.motion.xrel/static_cast<double>(width),
+                            event.motion.yrel/static_cast<double>(height),
+                            0.0
+                        )
                     );
                 }
                 break;
@@ -187,6 +195,15 @@ main(int argc, char **argv)
                     ),
                     -tmpVec
                 );
+                break;
+            case SDL_WINDOWEVENT:
+                switch (event.window.event) {
+                case SDL_WINDOWEVENT_RESIZED:
+                    width = event.window.data1;
+                    height = event.window.data2;
+                    glViewport(0, 0, width, height);
+                    break;
+                }
                 break;
             case SDL_KEYDOWN:
                 switch (event.key.keysym.sym) {
