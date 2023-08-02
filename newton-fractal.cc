@@ -1,3 +1,4 @@
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -6,6 +7,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 #include <glm/glm.hpp>
+#include <glm/gtx/io.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 int
@@ -87,12 +89,12 @@ compileLinkShaders(GLuint shaderProgram)
 }
 
 
-inline glm::vec3
+inline glm::dvec3
 fromWinCoord(int x, int y)
 {
     // TODO unhardcode window dimensions
-    glm::vec3 tmp(x - 400.0f, -y + 400.0f, 0.0f);
-    return (2.0f/800)*tmp;
+    glm::dvec3 tmp(x - 400.0d, -y + 400.0d, 0.0d);
+    return (2.0d/800)*tmp;
 }
 
 int
@@ -119,7 +121,7 @@ main(int argc, char **argv)
     GLuint shaderProgram = glCreateProgram();
     compileLinkShaders(shaderProgram);
 
-    const char *attrNames[] = { "vertPos", "vertRoot" };
+    const char *attrNames[] = { "vertPos" };
     const GLint nverts = 6;
     const GLuint bufsz[2] = { 3 };
     const GLfloat bufdat[3*nverts] = {
@@ -147,8 +149,7 @@ main(int argc, char **argv)
     }
 
     GLint viewTransAttr = glGetUniformLocation(shaderProgram, "viewTrans");
-    glm::mat4x4 viewTrans(1.0f);
-    //float zoom = 1.0;
+    glm::dmat4x4 viewTrans(1.0d);
     if (viewTransAttr == -1) {
         fprintf(stderr, "warn: Failed to get location of resource viewTrans\n");
     }
@@ -158,30 +159,31 @@ main(int argc, char **argv)
     glViewport(0, 0, 800, 800);
 
     SDL_Event event;
-    const struct timespec sleeptime = { 0, 16'666'666 };
+    //const struct timespec sleeptime = { 0, 16'666'666 };
     int quit = 0;
     while (!quit) {
         SDL_WaitEvent(NULL);
         while (SDL_PollEvent(&event)) {
-            GLfloat tmp;
-            glm::vec3 tmpVec;
+            GLdouble tmp;
+            glm::dvec3 tmpVec;
             switch (event.type) {
             case SDL_MOUSEMOTION:
                 if (event.motion.state & SDL_BUTTON_LMASK) {
                     viewTrans = glm::translate(
                         viewTrans,
                         // TODO unhardcode window dimensions
-                        (2.0f/800)*glm::vec3(-event.motion.xrel, event.motion.yrel, 0.0)
+                        // 2.0 because gl coordinates from -1 to 1
+                        (2.0d/800)*glm::dvec3(-event.motion.xrel, event.motion.yrel, 0.0)
                     );
                 }
                 break;
             case SDL_MOUSEWHEEL:
-                tmp = powf(2.0f, -0.5*event.wheel.y);
+                tmp = pow(2.0, -0.5*event.wheel.y);
                 tmpVec = fromWinCoord(event.wheel.mouseX, event.wheel.mouseY);
                 viewTrans = glm::translate(
                     glm::scale(
                         glm::translate(viewTrans, tmpVec),
-                        glm::vec3(tmp)
+                        glm::dvec3(tmp)
                     ),
                     -tmpVec
                 );
@@ -198,15 +200,16 @@ main(int argc, char **argv)
                 quit = 1;
                 break;
             }
+            //std::cerr << viewTrans << '\n' << viewTrans[0][0] << std::endl;
         }
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glUniformMatrix4fv(viewTransAttr, 1, GL_FALSE, glm::value_ptr(viewTrans));
+        glUniformMatrix4dv(viewTransAttr, 1, GL_FALSE, glm::value_ptr(viewTrans));
         glDrawArrays(GL_TRIANGLES, 0, nverts);
 
-        nanosleep(&sleeptime, NULL);
+        //nanosleep(&sleeptime, NULL);
 
         // Swap buffers
         SDL_GL_SwapWindow(window);
