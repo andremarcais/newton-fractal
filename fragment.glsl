@@ -1,11 +1,15 @@
 #version 420 core
 
-const double pi = 3.1415926535897932384626433832795;
-const double tau = 2*pi;
-const dmat2 U = dmat2(1.0, 0.0, 0.0, 1.0);
-const dmat2 I = dmat2(0.0, 1.0, -1.0, 0.0);
+#define REAL double
+#define COMPLEX dmat2
+
+const REAL pi = 3.1415926535897932384626433832795;
+const REAL tau = 2*pi;
+const COMPLEX U = COMPLEX(1.0, 0.0, 0.0, 1.0);
+const COMPLEX I = COMPLEX(0.0, 1.0, -1.0, 0.0);
 
 uniform dmat4 viewTrans;
+uniform COMPLEX poly[4];
 
 in vec2 screenPos;
 out vec4 FragColor;
@@ -17,43 +21,43 @@ dvec3 hsv2rgb(dvec3 c) {
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
-dmat2 conj(dmat2 z) {
-    return dmat2(z[0][0], -z[0][1], -z[1][0], z[1][1]);
+COMPLEX conj(COMPLEX z) {
+    return COMPLEX(z[0][0], -z[0][1], -z[1][0], z[1][1]);
 }
 
-double abs2(dmat2 z) {
+REAL abs2(COMPLEX z) {
     return (z*conj(z))[0][0];
 }
 
-dmat2 inv(dmat2 z) {
+COMPLEX inv(COMPLEX z) {
     return conj(z)/abs2(z);
 }
 
-dmat2 func(dmat2 z) {
+COMPLEX func(COMPLEX z) {
     return z*z*z*z - U;
 }
 
-dmat2 deriv(dmat2 z) {
+COMPLEX deriv(COMPLEX z) {
     return 4*z*z*z;
 }
 
-dmat2 newton(dmat2 z) {
+COMPLEX newton(COMPLEX z) {
     for (int i = 0; i < 200; ++i) {
         z = z - func(z)*inv(deriv(z));
     }
     return z;
 }
 
-dmat2 mandelbrot(dmat2 c) {
-    dmat2 z = 0*U;
+COMPLEX mandelbrot(COMPLEX c) {
+    COMPLEX z = 0*U;
     for (int i = 0; i < 200; ++i) {
         z = z*z + c;
     }
     return z;
 }
 
-vec4 mandelbrot_color(dmat2 c) {
-    dmat2 z = 0*U;
+vec4 mandelbrot_color(COMPLEX c) {
+    COMPLEX z = 0*U;
     for (int i = 0; i < 800; ++i) {
         z = z*z + c;
         if (abs2(z) > 4) {
@@ -65,7 +69,7 @@ vec4 mandelbrot_color(dmat2 c) {
 
 void main() {
     dvec4 pos = viewTrans * dvec4(screenPos, 0.0, 1.0);
-    dmat2 z0 = dmat2(pos.xy, -pos.y, pos.x);
+    COMPLEX z0 = COMPLEX(pos.xy, -pos.y, pos.x);
     // FragColor = vec4(newton(z0)[0] + 0.5, 0.0, 1.0);
     FragColor = mandelbrot_color(z0);
 }

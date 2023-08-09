@@ -10,7 +10,13 @@
 #include <glm/gtx/io.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+typedef GLdouble real;
+typedef glm::dmat2x2 complex;
+typedef glm::dvec3 vec3;
+typedef glm::dmat4x4 mat4;
+
 int width = 800, height = 800;
+real poly[4] = { 0.0d };
 SDL_Window *window;
 
 int
@@ -95,8 +101,8 @@ inline glm::dvec3
 fromWinCoord(int x, int y)
 {
     glm::dvec3 tmp(
-        x/static_cast<double>(width) - 0.5d,
-        -y/static_cast<double>(height) + 0.5d, 0.0d
+        x/static_cast<real>(width) - 0.5d,
+        -y/static_cast<real>(height) + 0.5d, 0.0d
     );
     return 2.0d*tmp;
 }
@@ -169,7 +175,7 @@ main(int argc, char **argv)
     while (!quit) {
         SDL_WaitEvent(NULL);
         while (SDL_PollEvent(&event)) {
-            GLdouble tmp;
+            real tmp;
             glm::dvec3 tmpVec;
             switch (event.type) {
             case SDL_MOUSEMOTION:
@@ -178,8 +184,8 @@ main(int argc, char **argv)
                         viewTrans,
                         // 2.0 because gl coordinates from -1 to 1
                         2.0d*glm::dvec3(
-                            -event.motion.xrel/static_cast<double>(width),
-                            event.motion.yrel/static_cast<double>(height),
+                            -event.motion.xrel/static_cast<real>(width),
+                            event.motion.yrel/static_cast<real>(height),
                             0.0
                         )
                     );
