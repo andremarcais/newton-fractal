@@ -2,6 +2,7 @@
 
 #define REAL double
 #define COMPLEX dmat2
+#define MAX_DEGREE 4
 
 const REAL pi = 3.1415926535897932384626433832795;
 const REAL tau = 2*pi;
@@ -9,7 +10,8 @@ const COMPLEX U = COMPLEX(1.0, 0.0, 0.0, 1.0);
 const COMPLEX I = COMPLEX(0.0, 1.0, -1.0, 0.0);
 
 uniform dmat4 viewTrans;
-uniform COMPLEX poly[4];
+uniform int mode;
+uniform COMPLEX poly[MAX_DEGREE+1];
 
 in vec2 screenPos;
 out vec4 FragColor;
@@ -34,15 +36,27 @@ COMPLEX inv(COMPLEX z) {
 }
 
 COMPLEX func(COMPLEX z) {
-    return z*z*z*z - U;
+    return poly[0] + poly[1]*z + poly[2]*z*z + poly[3]*z*z*z + poly[4]*z*z*z*z;
+    // TODO does GPU not like for loop?
+    //COMPLEX w = 0*U;
+    //for (int k = MAX_DEGREE; k >= 0; --k) {
+    //    w = poly[k] + z*w;
+    //}
+    //return w;
 }
 
 COMPLEX deriv(COMPLEX z) {
-    return 4*z*z*z;
+    return poly[1] + 2*poly[2]*z + 3*poly[3]*z*z + 4*poly[4]*z*z*z;
+    // TODO does GPU not like for loop?
+    //COMPLEX w = 0*U;
+    //for (int k = MAX_DEGREE; k >= 1; --k) {
+    //    w = k*poly[k] + z*w;
+    //}
+    //return w;
 }
 
 COMPLEX newton(COMPLEX z) {
-    for (int i = 0; i < 200; ++i) {
+    for (int i = 0; i < 50; ++i) {
         z = z - func(z)*inv(deriv(z));
     }
     return z;
@@ -70,6 +84,15 @@ vec4 mandelbrot_color(COMPLEX c) {
 void main() {
     dvec4 pos = viewTrans * dvec4(screenPos, 0.0, 1.0);
     COMPLEX z0 = COMPLEX(pos.xy, -pos.y, pos.x);
-    // FragColor = vec4(newton(z0)[0] + 0.5, 0.0, 1.0);
-    FragColor = mandelbrot_color(z0);
+    switch (mode) {
+    case 0:
+        FragColor = vec4(func(z0)[0] + 0.5, 0.0, 1.0);
+        break;
+    case 1:
+        FragColor = vec4(newton(z0)[0] + 0.5, 0.0, 1.0);
+        break;
+    case 2:
+        FragColor = mandelbrot_color(z0);
+        break;
+    }
 }

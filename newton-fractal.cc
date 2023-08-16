@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -15,8 +16,12 @@ typedef glm::dmat2x2 complex;
 typedef glm::dvec3 vec3;
 typedef glm::dmat4x4 mat4;
 
+const complex U = complex(1, 0, 0, 1);
+const complex I = complex(0, 1, -1, 0);
+const size_t max_deg = 4; // keep in sync with fragment shader
+
 int width = 800, height = 800;
-real poly[4] = { 0.0d };
+std::vector<complex> roots = { U+I, -U+I, -U-I, U };
 SDL_Window *window;
 
 int
@@ -107,6 +112,37 @@ fromWinCoord(int x, int y)
     return 2.0d*tmp;
 }
 
+GLint
+getUniformLocationOrWarn(GLuint shaderProgram, const GLchar *name)
+{
+    GLint loc = glGetUniformLocation(shaderProgram, name);
+    if (loc == -1) {
+        fprintf(stderr, "warn: Failed to get location of resource %s\n", name);
+    }
+    return loc;
+}
+
+void
+uploadPolynomial(GLint attr) {
+    std::vector<complex> poly1 = { U };
+    for (auto& root : roots) {
+        std::vector<complex> poly2;
+        poly2.push_back(-root*poly1[0]);
+        for (size_t k = 1; k < poly1.size(); ++k) {
+            poly2.push_back(poly1[k-1] - root*poly1[k]);
+        }
+        poly2.push_back(poly1.back());
+        poly1 = poly2;
+    }
+    std::vector<real> values;
+    for (auto& term : poly1) {
+        for (size_t i = 0; i < 4; ++i) {
+            values.push_back(*(glm::value_ptr(term) + i));
+        }
+    }
+    glUniformMatrix2dv(attr, poly1.size(), GL_FALSE, values.data());
+}
+
 int
 main(int argc, char **argv)
 {
@@ -159,11 +195,11 @@ main(int argc, char **argv)
         glVertexAttribPointer(attrs[i], bufsz[i], GL_FLOAT, GL_FALSE, 0, 0);
     }
 
-    GLint viewTransAttr = glGetUniformLocation(shaderProgram, "viewTrans");
+    GLint viewTransAttr = getUniformLocationOrWarn(shaderProgram, "viewTrans");
     glm::dmat4x4 viewTrans(1.0d);
-    if (viewTransAttr == -1) {
-        fprintf(stderr, "warn: Failed to get location of resource viewTrans\n");
-    }
+
+    GLint modeAttr = getUniformLocationOrWarn(shaderProgram, "mode");
+    GLint polyAttr = getUniformLocationOrWarn(shaderProgram, "poly");
 
     glUseProgram(shaderProgram);
 
@@ -230,6 +266,8 @@ main(int argc, char **argv)
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUniformMatrix4dv(viewTransAttr, 1, GL_FALSE, glm::value_ptr(viewTrans));
+        glUniform1i(modeAttr, 1);
+        uploadPolynomial(polyAttr);
         glDrawArrays(GL_TRIANGLES, 0, nverts);
 
         //nanosleep(&sleeptime, NULL);
