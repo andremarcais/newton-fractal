@@ -102,13 +102,29 @@ compileLinkShaders(GLuint shaderProgram)
     }
 }
 
-inline glm::dvec3
+// Mouse displacement in pixels to displacement in fractal coordinates
+inline vec3
+fromMouseCoord(int x, int y)
+{
+    vec3 tmp(
+        x/static_cast<real>(width),
+        -y/static_cast<real>(height),
+        0.0d // Not an affine vector. 3D position
+    );
+    // 2.0 because gl coordinates from -1 to 1
+    return 2.0d*tmp;
+}
+
+// Mouse position in pixels to position in fractal coordinates
+inline vec3
 fromWinCoord(int x, int y)
 {
-    glm::dvec3 tmp(
+    vec3 tmp(
         x/static_cast<real>(width) - 0.5d,
-        -y/static_cast<real>(height) + 0.5d, 0.0d
+        -y/static_cast<real>(height) + 0.5d,
+        0.0d // Not an affine vector. 3D position
     );
+    // 2.0 because gl coordinates from -1 to 1
     return 2.0d*tmp;
 }
 
@@ -207,6 +223,7 @@ main(int argc, char **argv)
 
     SDL_Event event;
     //const struct timespec sleeptime = { 0, 16'666'666 };
+    int selected = -1;
     int quit = 0;
     while (!quit) {
         SDL_WaitEvent(NULL);
@@ -214,17 +231,34 @@ main(int argc, char **argv)
             real tmp;
             glm::dvec3 tmpVec;
             switch (event.type) {
+            case SDL_MOUSEBUTTONDOWN:
+                if (event.button.button == SDL_BUTTON_RIGHT) {
+                    selected = 0;
+                    tmpVec = fromWinCoord(event.button.x, event.button.y);
+                    complex target = tmpVec[0]*U + tmpVec[1]*I;
+                    real bestDist = std::numeric_limits<real>::max();
+                    for (size_t i = 0; i < roots.size(); ++i) {
+                        complex diff = target - roots[i];
+                        real dist = (diff * glm::transpose(diff))[0][0];
+                        if (dist < bestDist) {
+                            bestDist = dist;
+                            selected = i;
+                        }
+                    }
+                    //std::cerr << selected << '\t' << bestDist << target << roots[selected] << std::endl;
+                }
+                break;
+            case SDL_MOUSEBUTTONUP:
+                selected = -1;
+                break;
             case SDL_MOUSEMOTION:
                 if (event.motion.state & SDL_BUTTON_LMASK) {
-                    viewTrans = glm::translate(
-                        viewTrans,
-                        // 2.0 because gl coordinates from -1 to 1
-                        2.0d*glm::dvec3(
-                            -event.motion.xrel/static_cast<real>(width),
-                            event.motion.yrel/static_cast<real>(height),
-                            0.0
-                        )
-                    );
+                    tmpVec = fromMouseCoord(event.motion.xrel, event.motion.yrel);
+                    viewTrans = glm::translate(viewTrans, -tmpVec);
+                }
+                if (event.motion.state & SDL_BUTTON_RMASK && selected >= 0 && static_cast<size_t>(selected) < roots.size()) {
+                    tmpVec = fromMouseCoord(event.motion.xrel, event.motion.yrel);
+                    roots[selected] = roots[selected] + tmpVec[0]*U + tmpVec[1]*I;
                 }
                 break;
             case SDL_MOUSEWHEEL:

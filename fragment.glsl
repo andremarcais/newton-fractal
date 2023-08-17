@@ -24,7 +24,7 @@ dvec3 hsv2rgb(dvec3 c) {
 }
 
 COMPLEX conj(COMPLEX z) {
-    return COMPLEX(z[0][0], -z[0][1], -z[1][0], z[1][1]);
+    return transpose(z);
 }
 
 REAL abs2(COMPLEX z) {
@@ -56,7 +56,7 @@ COMPLEX deriv(COMPLEX z) {
 }
 
 COMPLEX newton(COMPLEX z) {
-    for (int i = 0; i < 50; ++i) {
+    for (int i = 0; i < 20; ++i) {
         z = z - func(z)*inv(deriv(z));
     }
     return z;
