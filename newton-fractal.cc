@@ -16,15 +16,16 @@ typedef glm::dmat2x2 complex;
 typedef glm::dvec3 vec3;
 typedef glm::dmat4x4 mat4;
 
-const complex U = complex(1, 0, 0, 1);
-const complex I = complex(0, 1, -1, 0);
-const size_t max_deg = 4; // keep in sync with fragment shader
+static const complex U = complex(1, 0, 0, 1);
+static const complex I = complex(0, 1, -1, 0);
+static const size_t max_deg = 4; // keep in sync with fragment shader
 
-int width = 800, height = 800;
-std::vector<complex> roots = { U+I, -U+I, -U-I, U };
-SDL_Window *window;
+static int width = 800, height = 800;
+static std::vector<complex> roots = { U+I, -U+I, -U-I, U };
+static std::vector<complex> poly; // This gets initialized by uploadPolynomial()
+static SDL_Window *window;
 
-int
+static int
 slurp(FILE *file, char **buf)
 {
     char *tmp;
@@ -45,7 +46,7 @@ slurp(FILE *file, char **buf)
     return read;
 }
 
-int
+static int
 shaderSourcePath(GLuint shader, const char *path)
 {
     GLint length;
@@ -59,7 +60,7 @@ shaderSourcePath(GLuint shader, const char *path)
     return length;
 }
 
-void
+static void
 compileLinkShaders(GLuint shaderProgram)
 {
     struct shader {
@@ -103,7 +104,7 @@ compileLinkShaders(GLuint shaderProgram)
 }
 
 // Mouse displacement in pixels to displacement in fractal coordinates
-inline vec3
+static inline vec3
 fromMouseCoord(int x, int y)
 {
     vec3 tmp(
@@ -116,7 +117,7 @@ fromMouseCoord(int x, int y)
 }
 
 // Mouse position in pixels to position in fractal coordinates
-inline vec3
+static inline vec3
 fromWinCoord(int x, int y)
 {
     vec3 tmp(
@@ -128,7 +129,7 @@ fromWinCoord(int x, int y)
     return 2.0d*tmp;
 }
 
-GLint
+static GLint
 getUniformLocationOrWarn(GLuint shaderProgram, const GLchar *name)
 {
     GLint loc = glGetUniformLocation(shaderProgram, name);
@@ -138,7 +139,7 @@ getUniformLocationOrWarn(GLuint shaderProgram, const GLchar *name)
     return loc;
 }
 
-void
+static void
 uploadPolynomial(GLint attr) {
     std::vector<complex> poly1 = { U };
     for (auto& root : roots) {
@@ -151,12 +152,27 @@ uploadPolynomial(GLint attr) {
         poly1 = poly2;
     }
     std::vector<real> values;
-    for (auto& term : poly1) {
+    for (const auto& term : poly1) {
         for (size_t i = 0; i < 4; ++i) {
             values.push_back(*(glm::value_ptr(term) + i));
         }
     }
+    poly = poly1;
     glUniformMatrix2dv(attr, poly1.size(), GL_FALSE, values.data());
+}
+
+static complex
+newton(complex z)
+{
+    for (int i = 0; i < 20; ++i) {
+        complex val = static_cast<real>(0)*U;
+        complex deriv = static_cast<real>(0)*U;
+        for (int k = poly.size() - 1; k >= 0; --k) val = poly[k] + z*val;
+        for (int k = poly.size() - 1; k >= 1; --k) deriv = static_cast<real>(k)*poly[k] + z*deriv;
+        complex deriv_conj = glm::transpose(deriv);
+        z = z - val * deriv_conj / (deriv * deriv_conj)[0][0];
+    }
+    return z;
 }
 
 int
@@ -235,7 +251,7 @@ main(int argc, char **argv)
                 if (event.button.button == SDL_BUTTON_RIGHT) {
                     selected = 0;
                     tmpVec = fromWinCoord(event.button.x, event.button.y);
-                    complex target = tmpVec[0]*U + tmpVec[1]*I;
+                    complex target = newton(tmpVec[0]*U + tmpVec[1]*I);
                     real bestDist = std::numeric_limits<real>::max();
                     for (size_t i = 0; i < roots.size(); ++i) {
                         complex diff = target - roots[i];
@@ -245,7 +261,7 @@ main(int argc, char **argv)
                             selected = i;
                         }
                     }
-                    //std::cerr << selected << '\t' << bestDist << target << roots[selected] << std::endl;
+                    std::cerr << selected << '\t' << bestDist << target << roots[selected] << std::endl;
                 }
                 break;
             case SDL_MOUSEBUTTONUP:
