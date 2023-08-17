@@ -56,7 +56,7 @@ COMPLEX deriv(COMPLEX z) {
 }
 
 COMPLEX newton(COMPLEX z) {
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 40; ++i) {
         z = z - func(z)*inv(deriv(z));
     }
     return z;

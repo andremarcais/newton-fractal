@@ -21,7 +21,7 @@ static const complex I = complex(0, 1, -1, 0);
 static const size_t max_deg = 4; // keep in sync with fragment shader
 
 static int width = 800, height = 800;
-static std::vector<complex> roots = { U+I, -U+I, -U-I, U };
+static std::vector<complex> roots = { U+I, -U+I, -U-I, U-I };
 static std::vector<complex> poly; // This gets initialized by uploadPolynomial()
 static SDL_Window *window;
 
@@ -268,7 +268,7 @@ main(int argc, char **argv)
                 selected = -1;
                 break;
             case SDL_MOUSEMOTION:
-                if (event.motion.state & SDL_BUTTON_LMASK) {
+                if (event.motion.state & SDL_BUTTON_MMASK) {
                     tmpVec = fromMouseCoord(event.motion.xrel, event.motion.yrel);
                     viewTrans = glm::translate(viewTrans, -tmpVec);
                 }
