@@ -11,6 +11,8 @@
 #include <glm/gtx/io.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "embed.h"
+
 typedef GLdouble real;
 typedef glm::dmat2x2 complex;
 typedef glm::dvec3 vec3;
@@ -66,16 +68,22 @@ compileLinkShaders(GLuint shaderProgram)
     struct shader {
         const GLenum type;
         const char* path;
+        const GLchar* source;
+        const GLint length;
         GLuint id;
     } shaders[] = {
-        { GL_VERTEX_SHADER, "./vertex.glsl" },
-        { GL_FRAGMENT_SHADER, "./fragment.glsl" },
+        { GL_VERTEX_SHADER, "vertex.glsl", vertex_glsl, vertex_glsl_len },
+        { GL_FRAGMENT_SHADER, "fragment.glsl", fragment_glsl, fragment_glsl_len },
         { 0, NULL },
     };
 
     for (struct shader *shader = shaders; shader->path; ++shader) {
         shader->id = glCreateShader(shader->type);
-        shaderSourcePath(shader->id, shader->path);
+        if (shader->source) {
+            glShaderSource(shader->id, 1, &shader->source, &shader->length);
+        } else {
+            shaderSourcePath(shader->id, shader->path);
+        }
         glCompileShader(shader->id);
 
         // Check for shader compilation errors

@@ -1,4 +1,6 @@
 .gitignore
 
+: fragment.glsl vertex.glsl |> ./xxdfor %f > %o |> embed.h
+
 CFLAGS = `pkg-config --cflags --libs sdl2 glew glm` -lm
-: newton-fractal.cc |> g++ -Wall -Werror $(CFLAGS) %f |> a.out
+: newton-fractal.cc | embed.h |> g++ -Wall -Werror $(CFLAGS) %f |> | a.out
