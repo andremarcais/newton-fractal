@@ -26,6 +26,8 @@ static int width = 800, height = 800;
 static std::vector<complex> roots = { U+I, -U+I, -U-I, U-I };
 static std::vector<complex> poly; // This gets initialized by uploadPolynomial()
 static SDL_Window *window;
+static int selected = -1; // selected root
+static int quit = 0;
 
 static int
 slurp(FILE *file, char **buf)
@@ -183,6 +185,25 @@ newton(complex z)
     return z;
 }
 
+template<typename T>
+static int
+nearest_root_to_cursor(T mouse)
+{
+    auto tmp = fromWinCoord(mouse.x, mouse.y);
+    complex target = newton(tmp[0]*U + tmp[1]*I);
+    int best = 0;
+    real bestDist = std::numeric_limits<real>::max();
+    for (size_t i = 0; i < roots.size(); ++i) {
+        complex diff = target - roots[i];
+        real dist = sqrt((diff * glm::transpose(diff))[0][0]);
+        if (dist < bestDist) {
+            bestDist = dist;
+            best = i;
+        }
+    }
+    return best;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -247,8 +268,6 @@ main(int argc, char **argv)
 
     SDL_Event event;
     //const struct timespec sleeptime = { 0, 16'666'666 };
-    int selected = -1;
-    int quit = 0;
     while (!quit) {
         SDL_WaitEvent(NULL);
         while (SDL_PollEvent(&event)) {
@@ -256,20 +275,9 @@ main(int argc, char **argv)
             glm::dvec3 tmpVec;
             switch (event.type) {
             case SDL_MOUSEBUTTONDOWN:
-                if (event.button.button == SDL_BUTTON_RIGHT) {
-                    selected = 0;
-                    tmpVec = fromWinCoord(event.button.x, event.button.y);
-                    complex target = newton(tmpVec[0]*U + tmpVec[1]*I);
-                    real bestDist = std::numeric_limits<real>::max();
-                    for (size_t i = 0; i < roots.size(); ++i) {
-                        complex diff = target - roots[i];
-                        real dist = (diff * glm::transpose(diff))[0][0];
-                        if (dist < bestDist) {
-                            bestDist = dist;
-                            selected = i;
-                        }
-                    }
-                    std::cerr << selected << '\t' << bestDist << target << roots[selected] << std::endl;
+                if (event.button.button == SDL_BUTTON_LEFT) {
+                    selected = nearest_root_to_cursor(event.button);
+                    //std::cerr << selected << '\t' << bestDist << target << roots[selected] << std::endl;
                 }
                 break;
             case SDL_MOUSEBUTTONUP:
@@ -280,7 +288,7 @@ main(int argc, char **argv)
                     tmpVec = fromMouseCoord(event.motion.xrel, event.motion.yrel);
                     viewTrans = glm::translate(viewTrans, -tmpVec);
                 }
-                if (event.motion.state & SDL_BUTTON_RMASK && selected >= 0 && static_cast<size_t>(selected) < roots.size()) {
+                if (event.motion.state & SDL_BUTTON_RMASK && selected >= 0) {
                     tmpVec = fromMouseCoord(event.motion.xrel, event.motion.yrel);
                     roots[selected] = roots[selected] + tmpVec[0]*U + tmpVec[1]*I;
                 }
