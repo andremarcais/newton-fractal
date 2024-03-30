@@ -8,7 +8,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 #include <glm/glm.hpp>
-#include <glm/gtx/io.hpp>
+//#include <glm/gtx/io.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #include "embed.h"
@@ -261,6 +261,7 @@ main(int argc, char **argv)
 
     GLint modeAttr = getUniformLocationOrWarn(shaderProgram, "mode");
     GLint polyAttr = getUniformLocationOrWarn(shaderProgram, "poly");
+    GLint mode = 1;
 
     glUseProgram(shaderProgram);
 
@@ -315,6 +316,9 @@ main(int argc, char **argv)
                 break;
             case SDL_KEYDOWN:
                 switch (event.key.keysym.sym) {
+                case SDLK_0: mode = 0; break;
+                case SDLK_1: mode = 1; break;
+                case SDLK_2: mode = 2; break;
                 case SDLK_q:
                 case SDLK_ESCAPE:
                     quit = 1;
@@ -332,7 +336,7 @@ main(int argc, char **argv)
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUniformMatrix4dv(viewTransAttr, 1, GL_FALSE, glm::value_ptr(viewTrans));
-        glUniform1i(modeAttr, 1);
+        glUniform1i(modeAttr, mode);
         uploadPolynomial(polyAttr);
         glDrawArrays(GL_TRIANGLES, 0, nverts);
 
