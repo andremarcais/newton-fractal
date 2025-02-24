@@ -86,7 +86,8 @@ void main() {
     COMPLEX z0 = COMPLEX(pos.xy, -pos.y, pos.x);
     switch (mode) {
     case 0:
-        FragColor = vec4(func(z0)[0] + 0.5, 0.0, 1.0);
+        COMPLEX z = func(z0);
+        FragColor = vec4(abs2(z), 0.0, 0.0, 1.0);
         break;
     case 1:
         FragColor = vec4(newton(z0)[0] + 0.5, 0.0, 1.0);

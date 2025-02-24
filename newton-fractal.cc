@@ -16,6 +16,7 @@
 typedef GLdouble real;
 typedef glm::dmat2x2 complex;
 typedef glm::dvec3 vec3;
+typedef glm::dvec4 vec4;
 typedef glm::dmat4x4 mat4;
 
 static const complex U = complex(1, 0, 0, 1);
@@ -27,6 +28,7 @@ static std::vector<complex> roots = { U+I, -U+I, -U-I, U-I };
 static std::vector<complex> poly; // This gets initialized by uploadPolynomial()
 static SDL_Window *window;
 static int selected = -1; // selected root
+static glm::dmat4x4 viewTrans(1.0d);
 static int quit = 0;
 
 static int
@@ -114,29 +116,32 @@ compileLinkShaders(GLuint shaderProgram)
 }
 
 // Mouse displacement in pixels to displacement in fractal coordinates
-static inline vec3
+static vec3
 fromMouseCoord(int x, int y)
 {
     vec3 tmp(
         x/static_cast<real>(width),
         -y/static_cast<real>(height),
-        0.0d // Not an affine vector. 3D position
+        0.0d // Not projective coordinates. 3D cartesian
     );
     // 2.0 because gl coordinates from -1 to 1
     return 2.0d*tmp;
 }
 
 // Mouse position in pixels to position in fractal coordinates
-static inline vec3
+static vec3
 fromWinCoord(int x, int y)
 {
+    //vec4 tmp(
     vec3 tmp(
         x/static_cast<real>(width) - 0.5d,
         -y/static_cast<real>(height) + 0.5d,
-        0.0d // Not an affine vector. 3D position
+        0.0d //, 1.0d // projective 3D coordinates
     );
     // 2.0 because gl coordinates from -1 to 1
     return 2.0d*tmp;
+    //vec4 tmp2 = viewTrans*tmp;
+    //return vec3(tmp2.x, tmp2.y, tmp2.z)/tmp2.w;
 }
 
 static GLint
@@ -171,29 +176,34 @@ uploadPolynomial(GLint attr) {
     glUniformMatrix2dv(attr, poly1.size(), GL_FALSE, values.data());
 }
 
-static complex
-newton(complex z)
-{
-    for (int i = 0; i < 20; ++i) {
-        complex val = static_cast<real>(0)*U;
-        complex deriv = static_cast<real>(0)*U;
-        for (int k = poly.size() - 1; k >= 0; --k) val = poly[k] + z*val;
-        for (int k = poly.size() - 1; k >= 1; --k) deriv = static_cast<real>(k)*poly[k] + z*deriv;
-        complex deriv_conj = glm::transpose(deriv);
-        z = z - val * deriv_conj / (deriv * deriv_conj)[0][0];
-    }
-    return z;
-}
+//static complex
+//newton(complex z)
+//{
+//    for (int i = 0; i < 20; ++i) {
+//        complex val = static_cast<real>(0)*U;
+//        complex deriv = static_cast<real>(0)*U;
+//        for (int k = poly.size() - 1; k >= 0; --k) val = poly[k] + z*val;
+//        for (int k = poly.size() - 1; k >= 1; --k) deriv = static_cast<real>(k)*poly[k] + z*deriv;
+//        complex deriv_conj = glm::transpose(deriv);
+//        z = z - val * deriv_conj / (deriv * deriv_conj)[0][0];
+//    }
+//    return z;
+//}
 
 template<typename T>
 static int
 nearest_root_to_cursor(T mouse)
 {
     auto tmp = fromWinCoord(mouse.x, mouse.y);
-    complex target = newton(tmp[0]*U + tmp[1]*I);
+    //complex target = newton(tmp[0]*U + tmp[1]*I);
+    complex target = tmp[0]*U + tmp[1]*I;
     int best = 0;
     real bestDist = std::numeric_limits<real>::max();
+    std::cerr << "target:" << std::endl;
+    std::cerr << tmp[0] << '\t' << tmp[1] << '\t' << std::endl;
+    std::cerr << "roots:" << std::endl;
     for (size_t i = 0; i < roots.size(); ++i) {
+        std::cerr << roots[i][0][0] << '\t' << roots[i][0][1] << std::endl;
         complex diff = target - roots[i];
         real dist = sqrt((diff * glm::transpose(diff))[0][0]);
         if (dist < bestDist) {
@@ -201,6 +211,7 @@ nearest_root_to_cursor(T mouse)
             best = i;
         }
     }
+    std::cerr << "selected: " << best << std::endl;
     return best;
 }
 
@@ -257,7 +268,6 @@ main(int argc, char **argv)
     }
 
     GLint viewTransAttr = getUniformLocationOrWarn(shaderProgram, "viewTrans");
-    glm::dmat4x4 viewTrans(1.0d);
 
     GLint modeAttr = getUniformLocationOrWarn(shaderProgram, "mode");
     GLint polyAttr = getUniformLocationOrWarn(shaderProgram, "poly");
@@ -279,6 +289,7 @@ main(int argc, char **argv)
                 if (event.button.button == SDL_BUTTON_LEFT) {
                     selected = nearest_root_to_cursor(event.button);
                     //std::cerr << selected << '\t' << bestDist << target << roots[selected] << std::endl;
+                    //std::cerr << selected << std::endl;
                 }
                 break;
             case SDL_MOUSEBUTTONUP:
@@ -289,9 +300,10 @@ main(int argc, char **argv)
                     tmpVec = fromMouseCoord(event.motion.xrel, event.motion.yrel);
                     viewTrans = glm::translate(viewTrans, -tmpVec);
                 }
-                if (event.motion.state & SDL_BUTTON_RMASK && selected >= 0) {
+                if (event.motion.state & SDL_BUTTON_LMASK && selected >= 0) {
                     tmpVec = fromMouseCoord(event.motion.xrel, event.motion.yrel);
                     roots[selected] = roots[selected] + tmpVec[0]*U + tmpVec[1]*I;
+                    //std::cerr << roots[selected][0][0] << '\t' << roots[selected][1][0] << std::endl;
                 }
                 break;
             case SDL_MOUSEWHEEL:
