@@ -11,10 +11,9 @@ You must have SDL2, GLEW, and GLM installed.
 
 ## Running in a container
 
-This program can be run with `podman`. To build, pass `/dev/fuse` as it is used
-by the `tup` build system:
+This program can be run with `podman`. To build:
 
-    podman build -t newton-fractal --device /dev/fuse .
+    podman build -t newton-fractal .
 
 Then to run it, giving container access to GPU and X display:
 
