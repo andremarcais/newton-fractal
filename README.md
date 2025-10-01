@@ -25,5 +25,12 @@ Then to run it, giving container access to GPU and X display:
 - Button 2 (Wheel) to pan view
 - Button 4/5 (Scroll) to zoom in/out
 
+## Screenshots
+
+![Another Newton fractal with 4 roots](screenshots/newton.png)
+![Newton fractal with 4 roots](screenshots/newton2.png)
+![Mandelbrot set](screenshots/mandelbrot.png)
+![Mandelbrot set zoomed in](screenshots/mandelbrot2.png)
+
 
 <!--  vim: set ts=4 sw=4 tw=0 et spell spelllang=en : -->
