@@ -218,17 +218,28 @@ nearest_root_to_cursor(T mouse)
 int
 main(int argc, char **argv)
 {
-    SDL_Init(SDL_INIT_VIDEO);
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        fprintf(stderr, "Failed to initialize SDL: %s\n", SDL_GetError());
+        return 1;
+    }
 
-    window = SDL_CreateWindow(
-        "SDL OpenGL Window",
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        width, height,
-        SDL_WINDOW_OPENGL
-    );
+    if ((window = SDL_CreateWindow(
+                    "SDL OpenGL Window",
+                    SDL_WINDOWPOS_CENTERED,
+                    SDL_WINDOWPOS_CENTERED,
+                    width, height,
+                    SDL_WINDOW_OPENGL
+                    )
+                ) == NULL) {
+        fprintf(stderr, "Failed to create window: %s\n", SDL_GetError());
+        return 1;
+    }
 
     SDL_GLContext context = SDL_GL_CreateContext(window);
+    if (context == NULL) {
+        fprintf(stderr, "Failed to initialize GL context: %s\n", SDL_GetError());
+        return 1;
+    }
 
     GLenum glewInitResult = glewInit();
     if (glewInitResult != GLEW_OK) {
