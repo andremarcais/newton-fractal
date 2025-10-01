@@ -1,6 +1,12 @@
 .gitignore
 
+!cc = |> g++ -c -o %o -Wall -Werror $(CFLAGS) %f |> %B.o
+!ld = |> g++ -o %o -Wall -Werror %f $(LIBS) |>
+
 : fragment.glsl vertex.glsl |> ./xxdfor %f > %o |> embed.h
 
-CFLAGS = `pkg-config --cflags --libs sdl2 glew` -lm
-: newton-fractal.cc | embed.h |> g++ -o %o -Wall -Werror $(CFLAGS) %f |> newton-fractal
+CFLAGS = `pkg-config --cflags sdl2 glew`
+LIBS = `pkg-config --libs sdl2 glew` -lm
+
+: newton-fractal.cc | embed.h |> !cc |> {objs}
+: {objs} |> !ld |> newton-fractal
